@@ -1,0 +1,86 @@
+- hosts: all
+  become: yes
+  tasks:
+   - name: install Docker
+     apt:
+       name: docker.io
+       state: present
+       update_cache: true
+
+   - name: start Docker
+     service:
+       name: docker
+       state: started
+
+   - name: Make the Swap inactive
+     command: swapoff -a
+
+   - name: Enable service docker, and enable persistently
+     service: 
+       name: docker
+       enabled: yes
+
+   - name: Remove Swap entry from /etc/fstab.
+     lineinfile:
+        dest: /etc/fstab
+        regexp: swap
+        state: absent
+
+   - name: ensure net.bridge.bridge-nf-call-ip6tables is set to 1
+     sysctl:
+       name: net.bridge.bridge-nf-call-ip6tables
+       value: 1
+       state: present
+  
+   - name: ensure net.bridge.bridge-nf-call-iptables is set to 1
+     sysctl:
+       name: net.bridge.bridge-nf-call-iptables
+       value: 1
+       state: present
+
+   - name: ensure net.ipv4.ip_forward is set to 1
+     sysctl:
+        name: net.ipv4.ip_forward  
+        value: 1
+        state: present       
+
+
+   - name: install APT Transport HTTPS
+     apt:
+       name: apt-transport-https
+       state: present
+
+   - name: add Kubernetes apt-key
+     apt_key:
+       url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+       state: present
+
+   - name: add Kubernetes' APT repository
+     apt_repository:
+      repo: deb http://apt.kubernetes.io/ kubernetes-xenial main
+      state: present
+      filename: 'kubernetes'
+
+   - name: install kubelet
+     apt:
+       name: kubelet
+       state: present
+       update_cache: true
+
+   - name: install kubeadm
+     apt:
+       name: kubeadm
+       state: present
+       
+   - name: Enable service kubelet, and enable persistently
+     service: 
+       name: kubelet
+       enabled: yes
+- hosts: master
+  become: yes
+  tasks:
+   - name: install kubectl
+     apt:
+       name: kubectl
+       state: present
+       force: yes
